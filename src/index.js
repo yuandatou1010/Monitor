@@ -152,6 +152,15 @@ async function fetchHistoryData(env, request, id, hours, columns, sys = null) {
     );
   } catch (e) {
     const message = e && e.message ? e.message : String(e);
+    if (/invalid history partition id/i.test(message)) {
+      debug('[History] 服务器未分配历史分区，无法按主键范围查询:', message);
+      return new Response(JSON.stringify({
+        message: 'historyPartitionNotAssigned'
+      }), {
+        status: 409,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
     if (/no such column/i.test(message)) {
       debug('[History] 数据库字段缺失，可能尚未升级数据库:', message);
       return new Response(JSON.stringify({
@@ -196,7 +205,8 @@ export default {
       const search = target.search;
       target.pathname = '/admin';
       target.search = '';
-      target.hash = `admin${search}`;
+      // 与前端入口地址统一为 #/admin 形式；旧式 #admin 由前端归一化兼容
+      target.hash = `/admin${search}`;
       return Response.redirect(target.toString(), 302);
     }
 

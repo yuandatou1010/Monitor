@@ -1,4 +1,5 @@
 import { ref, reactive, computed } from 'vue'
+import { STORAGE } from './constants'
 
 const translations = reactive({
   en: {
@@ -71,6 +72,9 @@ const translations = reactive({
     cpuUsage: 'CPU Usage',
     gpuInfo: 'GPU Info',
     gpuUsage: 'GPU Usage',
+    gpuMemory: 'GPU Memory',
+    gpuClock: 'GPU SM Clock',
+    gpuPower: 'GPU Power',
     memoryUsage: 'Memory Usage',
     diskUsage: 'Disk Usage',
     diskIo: 'Disk IO',
@@ -200,6 +204,7 @@ const translations = reactive({
     notifyOffline: 'Offline notification delay',
     notifyOfflineMinutes: 'After {minutes} min offline',
     notifyExpireDays: 'Notify within {days} days before expiration',
+    expireReminderCustomPlaceholder: 'Days before expiration (1-365)',
     resourceAlert: 'Resource Load Alert',
     resourceAlertWindow: 'Alert Window',
     resourceAlertWindowMinutes: '{minutes} min window',
@@ -226,12 +231,31 @@ const translations = reactive({
     resourceAlertNetIn: 'Download threshold (Mbps)',
     resourceAlertNetOut: 'Upload threshold (Mbps)',
     resourceAlertNetTotal: 'Total network threshold (Mbps)',
-    resourceAlertTip: 'Add rules to enable resource load alerts; removing all rules disables them. Overlapping rules for the same server and monitor item are notified separately. After alerts are enabled, DO keeps one sample per server per minute, up to 10 minutes.',
+    resourceAlertTip: 'Note: Due to CF Workers limitations, too many rules may cause notification delays or losses.',
     telegramToken: 'Telegram / WeChat / Feishu / DingTalk / Bark / Server酱 / WxPusher / Gotify / OneBot',
     chatId: 'Chat ID',
     notificationChannel: 'Notification Channel',
     builtinNotification: 'Built-in Channel',
     customWebhook: 'Custom Webhook',
+    smtpNotification: 'SMTP Email',
+    smtpHost: 'SMTP Host',
+    smtpPort: 'Port',
+    smtpPortTip: 'Cloudflare Workers blocks port 25. Use 465 (implicit TLS) or 587 (STARTTLS).',
+    smtpSecure: 'Encryption',
+    smtpSecureAuto: 'Auto (by port)',
+    smtpSecureTls: 'Implicit TLS (465)',
+    smtpSecureStarttls: 'STARTTLS (587)',
+    smtpUser: 'Username',
+    smtpPassword: 'Password',
+    smtpFrom: 'From',
+    smtpTo: 'Recipients',
+    smtpInvalidEmail: 'Enter a valid email address, e.g. user@example.com',
+    smtpToRequired: 'At least one recipient email is required',
+    smtpFieldRequired: 'This field is required',
+    smtpPortInvalid: 'Invalid port (1-65535, port 25 is blocked by Cloudflare Workers)',
+    smtpSecureRequired: 'Ports other than 465/587 require an explicit encryption method',
+    smtpConfigInvalid: 'SMTP configuration is incomplete, please check the SMTP settings',
+    smtpTip: 'Sends plain-text email via cloudflare:sockets (port 25 is blocked by Cloudflare Workers). QQ / 163 require an SMTP authorization code, not the login password.',
     webhookUrl: 'Webhook URL',
     webhookMethod: 'Method',
     webhookFormat: 'Body Format',
@@ -245,6 +269,7 @@ const translations = reactive({
     expireNotificationTimeTip: 'Check expiration status and send reminders daily at the selected hour in the notification timezone. Use 0-23.',
     invalidNotificationTimezone: 'Notification timezone must be a valid IANA timezone, for example Asia/Shanghai.',
     invalidExpireNotificationTime: 'Expiration notification time must be an integer from 0 to 23.',
+    invalidExpireReminder: 'Expiration reminder must be an integer from 0 to 365 days.',
     saveConfig: 'SAVE CONFIGURATION',
     saving: 'SAVING...',
     hostnameLabel: 'Hostname',
@@ -354,6 +379,7 @@ const translations = reactive({
     ghProxy: 'Third-party GitHub Proxy',
     ghProxyTip: 'Use only trusted proxy services. Third-party proxies can see or modify downloaded installation files and may introduce security risks.',
     installVersionTip: 'Get the latest version from https://github.com/huilang-me/cfsm-agent/releases',
+    dockerVersionTip: 'Docker image tag, defaults to latest',
     ghProxyPlaceholder: 'Direct',
     pingNodes: 'Ping Nodes',
     customCt: 'Telecom',
@@ -369,6 +395,7 @@ const translations = reactive({
     cancelPasswordChange: 'Cancel Password Change',
     confirmPassword: 'Confirm Password',
     apiSecretTip: 'The API_SECRET for server reporting still uses the environment variable, regardless of password settings here.',
+    passwordRequired: 'No admin password is configured. Please set one before saving.',
     passwordMismatch: 'Passwords do not match',
     usernameRequired: 'Username is required',
     securitySettings: 'Security Settings',
@@ -388,6 +415,10 @@ const translations = reactive({
     monthlyTrafficLimit: 'Traffic Limit',
     trafficResetDay: 'Traffic Reset Day',
     trafficResetDayTip: 'Dynamic configurations (except "Auto-Update Switch") take effect automatically in about 4 minutes; the Auto-Update Switch requires re-copying and executing the command.',
+    trafficAlertPercent: 'Traffic Alert Threshold',
+    trafficAlertPercentTip: 'Per-server threshold percentage; leave empty = follow global setting, 0 = disable alert for this server. Sends one notification per billing cycle; re-arms after traffic reset or when threshold/limit changes. Only applies when a traffic limit is set.',
+    trafficAlertThreshold: 'Monthly Traffic Alert Threshold',
+    trafficAlertThresholdTip: 'Global default: notify once when a server\'s monthly traffic reaches this percentage of its traffic limit. 0 = off. Servers with their own threshold override this; a server set to 0 disables its alert.',
     networkInterface: 'Network Interfaces',
     networkInterfacePlaceholder: 'e.g. eth0,ens3',
     rxCorrection: 'Download Correction',
@@ -484,7 +515,7 @@ const translations = reactive({
     donationQrAlt: 'WeChat appreciation QR code',
     themeStoreLoading: 'Loading themes',
     themeStoreLoadFailed: 'Failed to load theme store',
-    themeStoreNetworkError: 'Unable to load the theme store. Please check network access to raw.githubusercontent.com and api.github.com, then retry.',
+    themeStoreNetworkError: 'Unable to load the theme store. Please check network access to raw.githubusercontent.com and api.github.com. Suggest changing nodes and retrying.',
     themeLoadVersions: 'Click to Load Versions',
     themeLoadingVersions: 'Loading Versions...',
     themeStoreWarning: 'Third-party themes are not verified',
@@ -577,6 +608,9 @@ const translations = reactive({
     cpuUsage: 'CPU 使用率',
     gpuInfo: 'GPU 信息',
     gpuUsage: 'GPU 使用率',
+    gpuMemory: 'GPU 显存',
+    gpuClock: 'GPU SM 频率',
+    gpuPower: 'GPU 功率',
     memoryUsage: '内存使用率',
     diskUsage: '磁盘使用率',
     diskIo: '磁盘 IO',
@@ -706,6 +740,7 @@ const translations = reactive({
     notifyOffline: '离线通知延迟',
     notifyOfflineMinutes: '离线 {minutes} 分钟后通知',
     notifyExpireDays: '到期前{days}天内通知',
+    expireReminderCustomPlaceholder: '到期前提醒天数（1-365）',
     resourceAlert: '资源负载告警',
     resourceAlertWindow: '告警时间窗口',
     resourceAlertWindowMinutes: '{minutes} 分钟窗口',
@@ -732,12 +767,31 @@ const translations = reactive({
     resourceAlertNetIn: '下行阈值 (Mbps)',
     resourceAlertNetOut: '上行阈值 (Mbps)',
     resourceAlertNetTotal: '总网速阈值 (Mbps)',
-    resourceAlertTip: '添加规则表示开启资源负载告警；删除全部规则表示关闭。同一服务器同一监控项配置多条规则会分别触发通知。启用后 DO 按每台服务器每分钟缓存一个样本，最多保留 10 分钟。',
+    resourceAlertTip: '受CF Workers限制,数量过多可能导致通知延迟或丢失。',
     telegramToken: 'Telegram / 企业微信 / 飞书 / 钉钉 / Bark / Server酱 / WxPusher / Gotify / OneBot',
     chatId: '聊天 ID',
     notificationChannel: '通知渠道',
     builtinNotification: '内置渠道',
     customWebhook: '自定义 Webhook',
+    smtpNotification: 'SMTP 邮件',
+    smtpHost: 'SMTP 服务器',
+    smtpPort: '端口',
+    smtpPortTip: 'Cloudflare Workers 封禁 25 端口，请使用 465（隐式 TLS）或 587（STARTTLS）。',
+    smtpSecure: '加密方式',
+    smtpSecureAuto: '自动（按端口）',
+    smtpSecureTls: '隐式 TLS (465)',
+    smtpSecureStarttls: 'STARTTLS (587)',
+    smtpUser: '用户名',
+    smtpPassword: '密码',
+    smtpFrom: '发件人',
+    smtpTo: '收件人',
+    smtpInvalidEmail: '请输入合法的邮箱地址，例如 user@example.com',
+    smtpToRequired: '至少需要一个收件人邮箱',
+    smtpFieldRequired: '此项为必填',
+    smtpPortInvalid: '端口无效（1-65535，Cloudflare Workers 封禁 25 端口）',
+    smtpSecureRequired: '非 465/587 端口必须显式选择加密方式',
+    smtpConfigInvalid: 'SMTP 配置不完整，请检查 SMTP 通知设置',
+    smtpTip: '通过 cloudflare:sockets 发送纯文本邮件（Cloudflare Workers 不支持 25 端口）。QQ / 163 需填写 SMTP 授权码而非登录密码。',
     webhookUrl: 'Webhook URL',
     webhookMethod: '请求方法',
     webhookFormat: 'Body 格式',
@@ -751,6 +805,7 @@ const translations = reactive({
     expireNotificationTimeTip: '每天按通知时区在所选小时检查到期状态并发送提醒，取值 0-23。',
     invalidNotificationTimezone: '通知时区必须是有效 IANA 时区，例如 Asia/Shanghai。',
     invalidExpireNotificationTime: '到期通知时间必须是 0 到 23 的整数。',
+    invalidExpireReminder: '到期提醒天数必须是 0 到 365 的整数。',
     saveConfig: '保存配置',
     saving: '保存中...',
     hostnameLabel: '主机名',
@@ -859,6 +914,7 @@ const translations = reactive({
     ghProxy: '第三方 GitHub 代理',
     ghProxyTip: '仅使用可信代理服务。第三方代理可能查看或篡改下载的安装文件，存在安全风险。',
     installVersionTip: '通过 https://github.com/huilang-me/cfsm-agent/releases 获取版本号',
+    dockerVersionTip: 'Docker 镜像标签（tag），默认 latest',
     ghProxyPlaceholder: '海外直连即可',
     pingNodes: 'Ping节点',
     customCt: '电信',
@@ -874,6 +930,7 @@ const translations = reactive({
     cancelPasswordChange: '取消修改密码',
     confirmPassword: '确认密码',
     apiSecretTip: '服务器上报使用的 API_SECRET 仍使用环境变量，不受此处密码设置影响。',
+    passwordRequired: '尚未配置管理员密码，请先设置密码再保存。',
     passwordMismatch: '两次输入的密码不一致',
     usernameRequired: '用户名不能为空',
     securitySettings: '安全设置',
@@ -892,6 +949,10 @@ const translations = reactive({
     monthlyTrafficLimit: '月流量限制',
     trafficResetDay: '流量重置日',
     trafficResetDayTip: '动态配置（除“自动更新开关”外）约4分钟自动生效；自动更新开关需重新复制命令执行。',
+    trafficAlertPercent: '月流量告警阈值',
+    trafficAlertPercentTip: '逐台阈值百分比；留空=跟随全局设置，0=该服务器关闭告警。每账期仅通知一次，流量重置或阈值/限额变更后重新可触发。仅在设置了流量限制时生效。',
+    trafficAlertThreshold: '月流量告警阈值',
+    trafficAlertThresholdTip: '全局默认：当某服务器当月流量达到其流量限制的该百分比时通知一次；0=关闭。设置了逐台阈值的服务器优先于全局；逐台设为 0 则关闭该服务器告警。',
     networkInterface: '统计网卡',
     networkInterfacePlaceholder: '例如 eth0,ens3，留空自动汇总',
     rxCorrection: '下行流量校正',
@@ -988,7 +1049,7 @@ const translations = reactive({
     donationQrAlt: '微信赞赏码',
     themeStoreLoading: '加载主题列表',
     themeStoreLoadFailed: '主题商店加载失败',
-    themeStoreNetworkError: '无法加载主题商店。请检查当前网络是否可以访问 raw.githubusercontent.com 和 api.github.com 后重试。',
+    themeStoreNetworkError: '无法加载主题商店。请检查当前网络是否可以访问 raw.githubusercontent.com 和 api.github.com。建议更换节点后重试。',
     themeLoadVersions: '点击加载版本',
     themeLoadingVersions: '加载版本中...',
     themeStoreWarning: '以下为第三方主题，未经验证',
@@ -1012,7 +1073,7 @@ const translations = reactive({
   }
 })
 
-const LANGUAGE_STORAGE_KEY = 'language_preference'
+const LANGUAGE_STORAGE_KEY = STORAGE.LANGUAGE_PREFERENCE
 let defaultLanguage = 'auto'
 
 export const normalizeLanguagePreference = (lang, fallback = 'auto') => {
@@ -1073,17 +1134,9 @@ export const applyDefaultLanguage = (lang) => {
   window.dispatchEvent(new CustomEvent('languageChanged', { detail: { lang: resolvedLang } }))
 }
 
-export const toggleLanguage = () => {
-  const newLang = currentLang.value === 'en' ? 'zh' : 'en'
-  setLanguage(newLang)
-  return newLang
-}
-
 export { currentLang, translations }
 
 export const useTranslation = () => {
   const trans = computed(() => translations[currentLang.value] || translations.en)
   return trans
 }
-
-export default { t, setLanguage, getLanguage, applyDefaultLanguage, toggleLanguage, currentLang, translations, useTranslation }
